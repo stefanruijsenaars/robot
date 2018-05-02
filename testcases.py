@@ -5,7 +5,7 @@ import unittest
 
 class RobotTestCase(unittest.TestCase):
     def setUp(self):
-        self.robot = Robot('N', 0, 0)
+        self.robot = Robot(0, 0, 'N')
         self.assertEqual(self.robot.orientation, 0)
         self.assertEqual(self.robot.orientation, 0)
 

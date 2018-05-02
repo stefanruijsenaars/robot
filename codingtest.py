@@ -49,7 +49,7 @@ class Robot:
 
     CHAR_ORIENTATIONS = ['N', 'E', 'S', 'W']
 
-    def __init__(self, orientation, x, y):
+    def __init__(self, x, y, orientation):
         """Args:
             orientation (str): direction the robot is facing ('N', 'E', 'S', 'W')
             x (int): x coordinate of the robot
@@ -155,27 +155,55 @@ class Simulation:
     def run(self):
         """Run a simulation"""
         # for every robot, follow instructions
+        for i in range(len(self.robots)):
+            robot = self.robots[i]
+            instructions = self.instructions[i]
+#            for instruction in instructions:
+                # if point is not smelly and move would lead to suicide, kill off robot and mark point as smelly.
+                # if not self.grid.coordinate_is_within_bounds
 
-            # if point is not smelly and move would lead to suicide, kill off robot and mark point as smelly.
-            # if point is smelly and move would lead to suicide, do nothing
+                # if point is smelly and move would lead to suicide, do nothing
         pass
 
-def parse_instructions(instructions):
+def parse_commands(commands):
     """Parse the given instructions (separated by newlines)"""
-    # if more than 100 chars, throw exception
+    x, y = map(int, commands[0].split(" "))
+
     # if coordinate larger than 50, throw exception
-    pass
+    if x > 50 or y > 50:
+        raise ValueError("Coordinate too large")
+
+    # initialize simulation
+    simulation = Simulation(x, y)
+
+    parsing_robot = True
+    for command in commands[1:]:
+        # if more than 100 chars, throw exception
+        if len(commands) > 100:
+            raise ValueError("Instruction too long")
+        # alternate between adding instructions and robots
+        if parsing_robot:
+            x, y, orientation = command.split(" ")
+            simulation.robots.append(Robot(int(x), int(y), orientation))
+        else:
+            # this is a line with instructions for the current robot
+            simulation.instructions.append(list(command))
+        parsing_robot = not parsing_robot
+    
+    return simulation
     
 def main():
     """Runs a simulation based on stdin input and outputs the results to stdout"""
 
-    instructions = []
+    commands = []
     for line in sys.stdin:
-        instructions.append(line.rstrip("\n"))
-    print(instructions)
+        # ignore newlines
+        if line != "\n":
+            commands.append(line.rstrip("\n"))
 
-    # Parse instructions -> output will be a simulation object.
-    simulation = parse_instructions(instructions)
+    # Parse commands -> output will be a simulation object.
+    simulation = parse_commands(commands)
+    print(simulation)
 
     # Run simulation, print results to stdout.
     result = simulation.run()
