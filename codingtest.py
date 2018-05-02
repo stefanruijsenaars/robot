@@ -47,6 +47,8 @@ class Robot:
        'W': 3
     }
 
+    CHAR_ORIENTATIONS = ['N', 'E', 'S', 'W']
+
     def __init__(self, orientation, x, y):
         """Args:
             orientation (str): direction the robot is facing ('N', 'E', 'S', 'W')
@@ -55,7 +57,7 @@ class Robot:
             alive (bool): whether the robot is alive or not
             
         """
-        self.orientation = self.ORIENTATIONS[orientation] 
+        self.orientation = self.ORIENTATIONS[orientation.upper()] 
         # this will be None if the robot is dead
         self.position = Point(x=x, y=y) 
         # assumption: new robots are alive
@@ -63,20 +65,26 @@ class Robot:
 
     def turn_right(self):
         """Make the robot turn right"""
-        pass
+        self.orientation = (self.orientation + 1) & 3
 
     def turn_left(self):
         """Make the robot turn left"""
-        pass
+        self.orientation = (self.orientation - 1) & 3
 
     def move_forward(self):
-        """Make the robot move forward (note this may lead to robot suicide)"""
-        pass
+        """Make the robot move forward"""
+        x = self.position.x + self.SHIFT[self.orientation][0]
+        y = self.position.y + self.SHIFT[self.orientation][1]
+        self.position = Point(x,y)
 
     def die(self):
         """Model a robot death"""
         self.alive = False
         self.position = None
+
+    def get_orientation(self):
+        """Returns a char with the orientation (N, S, W, E)"""
+        return self.CHAR_ORIENTATIONS[self.orientation]
 
 class Grid:
     """Models a grid. For now this is only being used to mark the smelly points and the bounds.
