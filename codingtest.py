@@ -15,6 +15,7 @@
 # TODO:
 # - input validation
 # - further test coverage
+# - fix inconsistent use of separate x, y as args vs Point
 
 # To run the code:
 # python codingtest.py < input.txt
@@ -65,14 +66,20 @@ class Robot:
 
     def turn_right(self):
         """Make the robot turn right"""
+        if not self.alive:
+            return
         self.orientation = (self.orientation + 1) & 3
 
     def turn_left(self):
         """Make the robot turn left"""
+        if not self.alive:
+            return
         self.orientation = (self.orientation - 1) & 3
 
     def move_forward(self):
         """Make the robot move forward"""
+        if not self.alive:
+            return
         x = self.position.x + self.SHIFT[self.orientation][0]
         y = self.position.y + self.SHIFT[self.orientation][1]
         self.position = Point(x,y)
@@ -80,7 +87,6 @@ class Robot:
     def die(self):
         """Model a robot death"""
         self.alive = False
-        self.position = None
 
     def get_orientation(self):
         """Returns a char with the orientation (N, S, W, E)"""
@@ -95,39 +101,49 @@ class Grid:
        y_bound (int): upper right y coordinate
     """
 
-    """Grid constructor.
-
-    Args:
-        x_bound: upper right x coordinate
-        y_bound: upper right y coordinate
-    """
     def __init__(self, x_bound, y_bound):
+        """Grid constructor.
+
+        Args:
+            x_bound (int): upper right x coordinate
+            y_bound (int): upper right y coordinate
+        """
         # assumption: smells are undirected
         self.smelly_points = set([])
         self.x_bound = x_bound
         self.y_bound = y_bound
 
-    """Checks if coordinate is within given bounds.
+    def coordinate_is_within_bounds(self, x, y):
+        """Checks if coordinate is within given bounds.
 
-    Returns:
-       True if it is, False otherwise.
+        Returns:
+            True if it is, False otherwise.
 
-    """
-    def coordinate_is_within_bounds(x, y):
-        pass
+        """
+        return x >= 0 and x <= self.x_bound and y >= 0 and y <= self.y_bound
 
-    def suicide_allowed_at(x, y):
+    def suicide_allowed_at(self, x, y):
         """Is the robot allowed to kill theirselves at this coordinate?
         
         Args:
            x (int)
            y (int)
 
-        """
-        # If the point is smelly, nope.
-        pass
+        Returns:
+            True if it is, False otherwise.
 
-    def mark_point_as_smelly(x, y):
+        """
+        # If the point is smelly, do not allow suicide - otherwise, do allow.
+        return not Point(x,y) in self.smelly_points
+
+    def mark_point_as_smelly(self, x, y):
+        """Marks a point as smelly (don't allow robot suicide here).
+        
+        Args:
+           x (int)
+           y (int)
+
+        """
         self.smelly_points.add(Point(x,y))
 
 class Simulation:
@@ -154,16 +170,49 @@ class Simulation:
 
     def run(self):
         """Run a simulation"""
+        # list of lines to output
+        out = []
         # for every robot, follow instructions
         for i in range(len(self.robots)):
             robot = self.robots[i]
             instructions = self.instructions[i]
-#            for instruction in instructions:
-                # if point is not smelly and move would lead to suicide, kill off robot and mark point as smelly.
-                # if not self.grid.coordinate_is_within_bounds
+            for instruction in instructions:
+                if instruction == 'L':
+                    robot.turn_left()
+                elif instruction == 'R':
+                    robot.turn_right()
+                elif instruction == 'F':
+                    # save current position so we can move back if needed
+                    previous_position = robot.position
+                    robot.move_forward()
+                else:
+                    raise ValueError("Invalid instruction")
 
-                # if point is smelly and move would lead to suicide, do nothing
-        pass
+                # if the robot is now outside of the grid....
+                if not self.grid.coordinate_is_within_bounds(robot.position.x, robot.position.y):
+                    # put the robot back in its previous position
+                    robot.position = previous_position
+                    if self.grid.suicide_allowed_at(robot.position.x, robot.position.y):
+                        robot.die()
+                        # mark current edge position as smelly
+                        self.grid.mark_point_as_smelly(robot.position.x, robot.position.y)
+
+        # generate output
+        for robot in self.robots:
+            info = []
+            # x coordinate
+            info.append(str(robot.position.x))
+            # y coordinate
+            info.append(str(robot.position.y))
+            # orientation
+            info.append(robot.get_orientation())
+            # lost?
+            if not robot.alive:
+                info.append("LOST")
+            out.append(" ".join(info))
+        return out
+
+
 
 def parse_commands(commands):
     """Parse the given instructions (separated by newlines)"""
@@ -203,7 +252,6 @@ def main():
 
     # Parse commands -> output will be a simulation object.
     simulation = parse_commands(commands)
-    print(simulation)
 
     # Run simulation, print results to stdout.
     result = simulation.run()
